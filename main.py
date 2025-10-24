@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template_string, redirect
 from dotenv import load_dotenv
 from markupsafe import Markup
 import os, re, html, unicodedata
+import httpx
 
 # 3rd party
 from rapidfuzz import fuzz
@@ -14,15 +15,22 @@ app = Flask(__name__)
 
 # ---------------- OpenAI ----------------
 OPENAI_INIT_ERROR = None
+
 def get_openai_client():
-    """Crea cliente con la clave limpia; guarda motivo si falla."""
+    """
+    Crea el cliente de OpenAI ignorando proxies del entorno para evitar:
+    TypeError: Client.__init__() got an unexpected keyword argument 'proxies'
+    """
     global OPENAI_INIT_ERROR
     key = (os.getenv("OPENAI_API_KEY") or "").strip()
     if not key:
         OPENAI_INIT_ERROR = "NO_API_KEY"
         return None
     try:
-        return OpenAI(api_key=key)
+        # httpx client SIN heredar variables de entorno (HTTP(S)_PROXY, etc.)
+        transport = httpx.HTTPTransport(retries=2)
+        http_client = httpx.Client(transport=transport, timeout=20.0, trust_env=False)
+        return OpenAI(api_key=key, http_client=http_client)
     except Exception as e:
         OPENAI_INIT_ERROR = f"{type(e).__name__}: {e}"
         return None
