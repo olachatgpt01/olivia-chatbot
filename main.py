@@ -3,81 +3,168 @@ import os
 
 app = Flask(__name__)
 
-@app.route("/ping")
-def ping():
-    return "pong", 200
-
-@app.route("/", methods=["GET"])
+@app.route("/")
 def home():
-    # UI mínima de chat
     return render_template_string("""
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>OLIVIA Chat</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; background:#f6f7f8; }
-    .wrap { max-width:640px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
-    .hdr { padding:16px; background:#0f766e; color:white; font-weight:600; }
-    .msgs { flex:1; padding:16px; overflow:auto; }
-    .bbl { max-width:75%; padding:10px 14px; border-radius:12px; margin-bottom:10px; line-height:1.35; }
-    .me  { background:#d1fae5; margin-left:auto; }
-    .bot { background:white; border:1px solid #e5e7eb; }
-    .inp { display:flex; gap:8px; padding:12px; border-top:1px solid #e5e7eb; background:white; position:sticky; bottom:0; }
-    input[type=text]{ flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; }
-    button{ padding:10px 14px; border:0; border-radius:10px; background:#0f766e; color:white; font-weight:600; cursor:pointer; }
-  </style>
+<meta charset="utf-8" />
+<title>OLIVIA</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
+  .chat-box {
+    max-width: 420px;
+    height: 100vh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+  }
+  .header {
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 0 10px;
+  }
+  .header img {
+    height: 50px;
+  }
+  .nombre-olivia {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #00989a;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+  .messages {
+    flex: 1;
+    padding: 20px;
+    background: #f9fafb;
+    overflow-y: auto;
+  }
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    clear: both;
+  }
+  .usuario {
+    background: #d1f1e3;
+    color: #00332f;
+    float: right;
+  }
+  .olivia {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    float: left;
+  }
+  .input-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid #e5e7eb;
+    padding: 10px;
+    background: #fff;
+  }
+  .whatsapp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+  .whatsapp img {
+    width: 26px;
+    height: 26px;
+  }
+  input[type="text"] {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 10px;
+    font-size: 14px;
+  }
+  button {
+    background: #00989a;
+    border: none;
+    color: white;
+    border-radius: 20px;
+    font-weight: bold;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #94a3b8;
+    padding-bottom: 8px;
+  }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="hdr">OLIVIA está en línea ✅</div>
-    <div id="msgs" class="msgs">
-      <div class="bbl bot">Hola, soy OLIVIA. ¿En qué te ayudo?</div>
+  <div class="chat-box" id="chatBox">
+    <div class="header">
+      <img src="https://intranet.opticalosandes.com.ec/wp-content/uploads/2022/02/grupo-ola.png" alt="Grupo OLA" />
+      <div class="nombre-olivia">OLIVIA</div>
     </div>
-    <form id="frm" class="inp">
-      <input id="txt" type="text" placeholder="Escribe tu mensaje..." required />
-      <button>Enviar</button>
+
+    <div class="messages" id="chatMessages">
+      <div class="bubble olivia">Hola, estoy aquí para acompañarte y ayudarte con cualquier duda 😊</div>
+    </div>
+
+    <form class="input-area" id="chatForm">
+      <a class="whatsapp" href="https://wa.me/593998515934" target="_blank" title="Sugerencias o soporte">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" />
+      </a>
+      <input type="text" id="mensaje" placeholder="Mensaje" required />
+      <button type="submit">Enviar</button>
     </form>
+    <div class="footer">© Grupo OLA 2025</div>
   </div>
 
 <script>
-const frm = document.getElementById('frm');
-const txt = document.getElementById('txt');
-const msgs = document.getElementById('msgs');
+const form = document.getElementById('chatForm');
+const inputField = document.getElementById('mensaje');
+const chatMessages = document.getElementById('chatMessages');
 
-frm.addEventListener('submit', async (e) => {
+form.addEventListener('submit', async function(e) {
   e.preventDefault();
-  const m = txt.value.trim();
-  if(!m) return;
+  const mensaje = inputField.value.trim();
+  if (!mensaje) return;
 
-  // burbuja usuario
-  const u = document.createElement('div');
-  u.className = 'bbl me';
-  u.textContent = m;
-  msgs.appendChild(u);
-  msgs.scrollTop = msgs.scrollHeight;
-  txt.value='';
+  const userBubble = document.createElement('div');
+  userBubble.className = 'bubble usuario';
+  userBubble.textContent = mensaje;
+  chatMessages.appendChild(userBubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  inputField.value = '';
 
-  // llamada al backend
-  try{
-    const r = await fetch('/responder', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ mensaje: m })
+  const loader = document.createElement('div');
+  loader.className = 'bubble olivia';
+  loader.textContent = 'Escribiendo...';
+  chatMessages.appendChild(loader);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const res = await fetch('/responder', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mensaje})
     });
-    const data = await r.json();
-    const b = document.createElement('div');
-    b.className = 'bbl bot';
-    b.textContent = data.ok ? data.respuesta : (data.msg || 'Ocurrió un error');
-    msgs.appendChild(b);
-    msgs.scrollTop = msgs.scrollHeight;
-  }catch(err){
-    const b = document.createElement('div');
-    b.className = 'bbl bot';
-    b.textContent = 'Error de red';
-    msgs.appendChild(b);
-    msgs.scrollTop = msgs.scrollHeight;
+    const data = await res.json();
+    loader.textContent = data.respuesta || 'Error interno';
+  } catch {
+    loader.textContent = 'Error de conexión';
   }
 });
 </script>
@@ -88,11 +175,10 @@ frm.addEventListener('submit', async (e) => {
 @app.route("/responder", methods=["POST"])
 def responder():
     data = request.get_json(silent=True) or {}
-    pregunta = (data.get("mensaje") or "").strip()
-    if not pregunta:
-        return jsonify({"ok": False, "msg": "Falta 'mensaje'"}), 400
-    # Respuesta dummy por ahora
-    return jsonify({"ok": True, "respuesta": "Recibido ✅. En breve conectaré con políticas y OpenAI."})
+    msg = (data.get("mensaje") or "").strip()
+    if not msg:
+        return jsonify({"respuesta": "Por favor, escribe un mensaje."})
+    return jsonify({"respuesta": "Gracias por tu mensaje. 😊 En breve conectaré con las políticas y OpenAI."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
