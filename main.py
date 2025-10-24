@@ -5,14 +5,20 @@ import os, re
 
 # ============ Config ============
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# SDK OpenAI v1.x
-try:
-    from openai import OpenAI
-    client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
-except Exception:
-    client = None
+from openai import OpenAI
+
+def get_openai_client():
+    """Crea el cliente solo cuando hay clave válida."""
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        try:
+            return OpenAI(api_key=key)
+        except Exception:
+            return None
+    return None
+
+client = get_openai_client()
 
 app = Flask(__name__)
 
